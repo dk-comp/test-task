@@ -1,0 +1,51 @@
+version: "3.8"
+services:
+  gateway:
+    image: nginx:1.17-alpine
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: test-gateway
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_WWW_BACKEND_PORT}:${LOCAL_WWW_BACKEND_PORT}"
+    volumes:
+      - ./docker/development/gateway/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - nginx
+      - backend
+
+  backend:
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    build:
+      args:
+        user: test
+        uid: 1000
+        PHP_VERSION: ${PHP_VERSION}
+      context: docker/development/backend/php-fpm
+      dockerfile: Dockerfile
+    container_name: test-backend
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./backend:/var/www
+      - ./docker/development/backend/php-fpm/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      APP_DEBUG: 1
+      PHP_IDE_CONFIG: "serverName=test"
+
+  nginx:
+    image: nginx:1.17-alpine
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: test-nginx
+    restart: unless-stopped
+    volumes:
+      - ./backend:/var/www
+      - ./docker/development/backend/nginx/conf.d:/etc/nginx/conf.d
